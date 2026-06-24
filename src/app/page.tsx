@@ -3,7 +3,18 @@
 import { useState, useRef, MouseEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Upload, RefreshCw, Trash2, Plus } from 'lucide-react';
+import {
+  Activity,
+  BoxSelect,
+  CheckCircle2,
+  ImagePlus,
+  Loader2,
+  MousePointer2,
+  RefreshCw,
+  ScanLine,
+  Trash2,
+  Upload,
+} from 'lucide-react';
 
 interface Box {
   id: string;
@@ -239,405 +250,438 @@ export default function MedicalSAMDemo() {
 
   // Combine boxes with current drawing box for display
   const displayBoxes = [...boxes, ...(currentBox && isDrawing ? [currentBox] : [])];
+  const wgCount = boxes.filter((box) => box.type === 'WG').length;
+  const cgCount = boxes.filter((box) => box.type === 'CG').length;
+  const readyForPz = wgCount > 0 && cgCount > 0;
+  const statusText = boxes.length > 0
+    ? `${boxes.length} 个标注框: ${boxes.map((box) => box.type).join(', ')}`
+    : isDrawing
+      ? '正在绘制标注框...'
+      : '点击并拖拽图像以绘制 WG 或 CG 标注框';
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 p-4 md:p-8">
-      <div className="max-w-7xl mx-auto relative overflow-hidden">
-        {/* Shenzhen Hetao College Logo - absolute top-right */}
-        <img
-          src="/深圳河套学院.png"
-          alt="深圳河套学院"
-          className="absolute -top-8 right-0 md:right-2 w-64 md:w-80 lg:w-96 h-auto z-20"
-        />
-
-        {/* Header */}
-        <div className="mb-6 flex flex-col items-center text-center">
-          <div className="flex items-center gap-3 mb-2">
-            <img
-              src="https://code.coze.cn/api/sandbox/coze_coding/file/proxy?expire_time=-1&file_path=assets%2Flogo3.png&nonce=97f6f9fd-07eb-4aba-95b8-ba41d6aad315&project_id=7611091818876452915&sign=83ce3ce2b2d06a8f24d566d3e8375456040b2f238f2624d80c41f1226f09cb0b"
-              alt="ProZoneSAM2 Logo"
-              className="h-12 w-auto flex-shrink-0"
-            />
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent leading-tight">
-              ProZoneSAM2
-            </h1>
+    <main className="min-h-screen bg-[#f6f8fb] text-slate-950 dark:bg-slate-950 dark:text-slate-50">
+      <div className="mx-auto flex min-h-screen w-full max-w-[1540px] flex-col px-4 py-4 sm:px-6 lg:px-8">
+        <header className="mb-4 flex flex-col gap-4 border-b border-slate-200/80 pb-4 dark:border-slate-800 md:flex-row md:items-center md:justify-between">
+          <div className="flex min-w-0 items-center gap-4">
+            <div className="flex size-12 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-white shadow-sm dark:bg-white dark:text-slate-950">
+              <ScanLine className="size-6" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-sky-700 dark:text-sky-300">
+                AI-assisted prostate MRI segmentation
+              </p>
+              <h1 className="text-2xl font-semibold tracking-tight text-slate-950 dark:text-white md:text-3xl">
+                ProZoneSAM2
+              </h1>
+            </div>
           </div>
-          <p className="text-sm text-slate-600 dark:text-slate-400">
-            Interactive Medical Image Segmentation with Box Prompt
-          </p>
-          <div className="mt-2 inline-flex items-center rounded-full bg-gradient-to-r from-blue-100 to-purple-100 px-3 py-1 text-xs text-blue-800 dark:from-blue-950/50 dark:to-purple-950/50 dark:text-blue-200">
-            ✅ ProZoneSAM2 Model Ready
-          </div>
-        </div>
+          <img
+            src="/深圳河套学院.png"
+            alt="深圳河套学院"
+            className="h-10 w-auto max-w-[280px] object-contain opacity-90 md:h-12"
+          />
+        </header>
 
-        <div className="grid gap-4 lg:grid-cols-4">
-          {/* Left Panel - Controls */}
-          <div className="space-y-4">
-            {/* Upload Section */}
-            <Card className="p-5 bg-gradient-to-br from-white to-blue-50/50 dark:from-slate-900 dark:to-blue-950/20 border-blue-200 dark:border-blue-800">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-1 h-5 bg-gradient-to-b from-blue-500 to-purple-500 rounded-full"></div>
-                <h2 className="text-base font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                  上传图像
+        <section className="grid flex-1 gap-4 lg:grid-cols-[320px_minmax(0,1fr)] xl:grid-cols-[340px_minmax(0,1fr)_300px]">
+          <aside className="space-y-4">
+            <Card className="gap-4 border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+              <div className="space-y-3">
+                <div className="inline-flex items-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/50 dark:text-emerald-200">
+                  <CheckCircle2 className="size-3.5" />
+                  Model Ready
+                </div>
+                <h2 className="text-xl font-semibold leading-tight text-slate-950 dark:text-white">
+                  面向前列腺分区的交互式分割工作台
                 </h2>
+                <p className="text-sm leading-6 text-slate-600 dark:text-slate-400">
+                  上传医学图像后，通过框选全腺体 WG 和中央腺体 CG，引导模型生成中央腺体与外周带 PZ 的分割结果。页面已按宽屏工作流重新排布，左侧控制、中央阅片、右侧查看状态。
+                </p>
               </div>
-              <div className="space-y-2.5">
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                  className="hidden"
-                  id="image-upload"
-                />
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-950/60">
+                  <div className="text-lg font-semibold text-sky-700 dark:text-sky-300">{wgCount}</div>
+                  <div className="text-[11px] uppercase text-slate-500">WG boxes</div>
+                </div>
+                <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-950/60">
+                  <div className="text-lg font-semibold text-orange-600 dark:text-orange-300">{cgCount}</div>
+                  <div className="text-[11px] uppercase text-slate-500">CG boxes</div>
+                </div>
+                <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-950/60">
+                  <div className={`text-lg font-semibold ${readyForPz ? 'text-emerald-700 dark:text-emerald-300' : 'text-slate-400'}`}>
+                    {readyForPz ? 'Ready' : 'Wait'}
+                  </div>
+                  <div className="text-[11px] uppercase text-slate-500">PZ</div>
+                </div>
+              </div>
+            </Card>
+
+            <Card className="gap-4 border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+              <div className="flex items-center justify-between">
+                <h2 className="text-base font-semibold text-slate-950 dark:text-white">图像输入</h2>
+                <ImagePlus className="size-4 text-slate-400" />
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                className="hidden"
+                id="image-upload"
+              />
+              <div className="grid gap-2">
                 <label htmlFor="image-upload">
-                  <Button
-                    variant="outline"
-                    className="w-full h-9 border-blue-300 hover:border-blue-400 hover:bg-blue-50 dark:border-blue-700 dark:hover:bg-blue-950/30 transition-all"
-                    asChild
-                  >
-                    <span className="flex items-center gap-2 text-base">
-                      <Upload className="h-4 w-4" />
-                      上传图像
+                  <Button className="h-10 w-full bg-slate-950 text-white hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200" asChild>
+                    <span>
+                      <Upload className="size-4" />
+                      上传医学图像
                     </span>
                   </Button>
                 </label>
+                <Button variant="outline" onClick={loadSampleImage} className="h-10 w-full">
+                  <ImagePlus className="size-4" />
+                  载入示例图像
+                </Button>
                 {image && (
-                  <Button
-                    variant="ghost"
-                    onClick={resetAll}
-                    className="w-full h-9 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
-                  >
-                    <RefreshCw className="mr-2 h-4 w-4" />
-                    重置
+                  <Button variant="ghost" onClick={resetAll} className="h-10 w-full text-slate-600 dark:text-slate-300">
+                    <RefreshCw className="size-4" />
+                    重置工作台
                   </Button>
                 )}
               </div>
             </Card>
 
-            {/* Box Type Selection */}
-            <Card className="p-5 bg-gradient-to-br from-white to-orange-50/50 dark:from-slate-900 dark:to-orange-950/20 border-orange-200 dark:border-orange-800">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-1 h-5 bg-gradient-to-b from-blue-500 to-orange-500 rounded-full"></div>
-                <h2 className="text-base font-bold bg-gradient-to-r from-blue-600 to-orange-600 bg-clip-text text-transparent">
-                  标注类型
-                </h2>
+            <Card className="gap-4 border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+              <div className="flex items-center justify-between">
+                <h2 className="text-base font-semibold text-slate-950 dark:text-white">标注设置</h2>
+                <BoxSelect className="size-4 text-slate-400" />
               </div>
-              <div className="space-y-2">
-                <label className="flex items-center space-x-3 p-2.5 rounded-lg border-2 cursor-pointer transition-all hover:border-blue-400 hover:bg-blue-50/50 dark:hover:bg-blue-950/20 dark:border-blue-900"
-                  style={{
-                    borderColor: selectedBoxType === 'WG' ? 'rgba(59, 130, 246, 0.5)' : 'rgba(59, 130, 246, 0.2)',
-                    backgroundColor: selectedBoxType === 'WG' ? 'rgba(59, 130, 246, 0.05)' : 'transparent'
-                  }}>
+              <div className="grid gap-2">
+                <label
+                  className={`flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition ${
+                    selectedBoxType === 'WG'
+                      ? 'border-sky-400 bg-sky-50 text-sky-950 dark:border-sky-500 dark:bg-sky-950/40 dark:text-sky-100'
+                      : 'border-slate-200 bg-white hover:border-sky-200 dark:border-slate-800 dark:bg-slate-900'
+                  }`}
+                >
                   <input
                     type="radio"
                     id="wg-type"
                     name="boxType"
                     checked={selectedBoxType === 'WG'}
                     onChange={() => setSelectedBoxType('WG')}
-                    className="h-4 w-4 text-blue-600"
+                    className="size-4 text-sky-600"
                   />
-                  <span className="flex-1">
-                    <span className="font-bold text-blue-600">WG</span>
-                    <span className="ml-2 text-base text-slate-600 dark:text-slate-400">全腺体</span>
+                  <span className="flex flex-1 items-center justify-between gap-3">
+                    <span className="font-semibold">WG</span>
+                    <span className="text-sm text-slate-600 dark:text-slate-400">全腺体</span>
                   </span>
                 </label>
-                <label className="flex items-center space-x-3 p-2.5 rounded-lg border-2 cursor-pointer transition-all hover:border-orange-400 hover:bg-orange-50/50 dark:hover:bg-orange-950/20 dark:border-orange-900"
-                  style={{
-                    borderColor: selectedBoxType === 'CG' ? 'rgba(249, 115, 22, 0.5)' : 'rgba(249, 115, 22, 0.2)',
-                    backgroundColor: selectedBoxType === 'CG' ? 'rgba(249, 115, 22, 0.05)' : 'transparent'
-                  }}>
+                <label
+                  className={`flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition ${
+                    selectedBoxType === 'CG'
+                      ? 'border-orange-400 bg-orange-50 text-orange-950 dark:border-orange-500 dark:bg-orange-950/40 dark:text-orange-100'
+                      : 'border-slate-200 bg-white hover:border-orange-200 dark:border-slate-800 dark:bg-slate-900'
+                  }`}
+                >
                   <input
                     type="radio"
                     id="cg-type"
                     name="boxType"
                     checked={selectedBoxType === 'CG'}
                     onChange={() => setSelectedBoxType('CG')}
-                    className="h-4 w-4 text-orange-600"
+                    className="size-4 text-orange-600"
                   />
-                  <span className="flex-1">
-                    <span className="font-bold text-orange-600">CG</span>
-                    <span className="ml-2 text-base text-slate-600 dark:text-slate-400">中央腺体</span>
+                  <span className="flex flex-1 items-center justify-between gap-3">
+                    <span className="font-semibold">CG</span>
+                    <span className="text-sm text-slate-600 dark:text-slate-400">中央腺体</span>
                   </span>
                 </label>
-                <p className="mt-2 text-xs text-slate-500 dark:text-slate-500 leading-relaxed">
-                  💡 同时绘制 WG 和 CG 标注框以获取 PZ 分割结果（结果仅显示 CG 和 PZ）
-                </p>
               </div>
+              <p className="rounded-lg bg-slate-50 p-3 text-xs leading-5 text-slate-600 dark:bg-slate-950/60 dark:text-slate-400">
+                推荐先绘制 WG，再切换到 CG 绘制第二个框。两类标注同时存在时，模型可推导 PZ 外周带区域。
+              </p>
             </Card>
 
-            {/* Instructions */}
-            <Card className="p-5 bg-gradient-to-br from-white to-purple-50/50 dark:from-slate-900 dark:to-purple-950/20 border-purple-200 dark:border-purple-800">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-1 h-5 bg-gradient-to-b from-purple-500 to-pink-500 rounded-full"></div>
-                <h2 className="text-base font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-                  使用指南
-                </h2>
-              </div>
-              <ul className="space-y-2 text-base text-slate-600 dark:text-slate-400">
-                <li className="flex items-start gap-2">
-                  <span className="mt-0.5 flex-shrink-0 w-5 h-5 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 text-white text-xs flex items-center justify-center font-bold">1</span>
-                  <span>上传医学图像</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="mt-0.5 flex-shrink-0 w-5 h-5 rounded-full bg-gradient-to-br from-cyan-500 to-green-500 text-white text-xs flex items-center justify-center font-bold">2</span>
-                  <span>选择标注类型 (WG/CG)</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="mt-0.5 flex-shrink-0 w-5 h-5 rounded-full bg-gradient-to-br from-green-500 to-yellow-500 text-white text-xs flex items-center justify-center font-bold">3</span>
-                  <span>在图像上绘制标注框</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="mt-0.5 flex-shrink-0 w-5 h-5 rounded-full bg-gradient-to-br from-yellow-500 to-orange-500 text-white text-xs flex items-center justify-center font-bold">4</span>
-                  <span>运行分割</span>
-                </li>
-              </ul>
-            </Card>
-
-            <Card className="p-6">
-              <h2 className="mb-4 text-lg font-semibold">模式选择</h2>
-              <div className="space-y-3">
-                <div className="flex items-center space-x-3">
+            <Card className="gap-4 border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+              <h2 className="text-base font-semibold text-slate-950 dark:text-white">模型模式</h2>
+              <div className="grid grid-cols-2 gap-2">
+                <label
+                  className={`cursor-pointer rounded-lg border p-3 text-sm transition ${
+                    !useMedicalMode
+                      ? 'border-slate-900 bg-slate-900 text-white dark:border-white dark:bg-white dark:text-slate-950'
+                      : 'border-slate-200 bg-white text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300'
+                  }`}
+                >
                   <input
                     type="radio"
                     id="basic-mode"
                     name="mode"
                     checked={!useMedicalMode}
                     onChange={() => setUseMedicalMode(false)}
-                    className="h-4 w-4"
+                    className="sr-only"
                   />
-                  <label htmlFor="basic-mode" className="text-base">
-                    <span className="font-semibold">基础模式</span>
-                    <span className="ml-2 text-slate-600 dark:text-slate-400">- 标准 SAM2</span>
-                  </label>
-                </div>
-                <div className="flex items-center space-x-3">
+                  基础 SAM2
+                </label>
+                <label
+                  className={`cursor-pointer rounded-lg border p-3 text-sm transition ${
+                    useMedicalMode
+                      ? 'border-slate-900 bg-slate-900 text-white dark:border-white dark:bg-white dark:text-slate-950'
+                      : 'border-slate-200 bg-white text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300'
+                  }`}
+                >
                   <input
                     type="radio"
                     id="medical-mode"
                     name="mode"
                     checked={useMedicalMode}
                     onChange={() => setUseMedicalMode(true)}
-                    className="h-4 w-4"
+                    className="sr-only"
                   />
-                  <label htmlFor="medical-mode" className="text-base">
-                    <span className="font-semibold">医学模式</span>
-                    <span className="ml-2 text-slate-600 dark:text-slate-400">- ProZoneSAM2</span>
-                  </label>
-                </div>
+                  ProZoneSAM2
+                </label>
               </div>
             </Card>
+          </aside>
 
-            {/* Boxes List */}
-            {boxes.length > 0 && (
-              <Card className="p-6">
-                <div className="mb-4 flex items-center justify-between">
-                  <h2 className="text-lg font-semibold">标注框 ({boxes.length})</h2>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={clearAllBoxes}
-                    className="text-red-600 hover:text-red-700"
-                  >
-                    清除全部
-                  </Button>
+          <section className="min-w-0">
+            <Card className="h-full gap-4 border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+              <div className="flex flex-col gap-3 border-b border-slate-200 pb-4 dark:border-slate-800 md:flex-row md:items-center md:justify-between">
+                <div>
+                  <h2 className="text-lg font-semibold text-slate-950 dark:text-white">分割画布</h2>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">{statusText}</p>
                 </div>
-                <div className="space-y-2 max-h-64 overflow-y-auto">
-                  {boxes.filter(box => box != null).map((box, index) => (
-                    <div
-                      key={box.id}
-                      className="flex items-center justify-between rounded-lg border p-3 text-base"
-                      style={{
-                        borderColor: box.type === 'WG' ? 'rgba(59, 130, 246, 0.3)' : 'rgba(249, 115, 22, 0.3)',
-                        backgroundColor: box.type === 'WG' ? 'rgba(59, 130, 246, 0.05)' : 'rgba(249, 115, 22, 0.05)',
-                      }}
-                    >
-                      <div className="flex items-center space-x-3">
-                        <span className={`font-bold ${box.type === 'WG' ? 'text-blue-600' : 'text-orange-600'}`}>
-                          {box.type}
-                        </span>
-                        <span className="text-slate-600 dark:text-slate-400">
-                          {box.width}×{box.height} at ({box.x}, {box.y})
-                        </span>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => deleteBox(box.id)}
-                        className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              </Card>
-            )}
-          </div>
+                <Button
+                  onClick={handleSegment}
+                  disabled={boxes.length === 0 || isLoading}
+                  className="h-10 min-w-[150px] bg-sky-700 text-white hover:bg-sky-800"
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="size-4 animate-spin" />
+                      处理中...
+                    </>
+                  ) : (
+                    <>
+                      <Activity className="size-4" />
+                      运行分割
+                    </>
+                  )}
+                </Button>
+              </div>
 
-          {/* Right Panel - Canvas */}
-          <div className="lg:col-span-3">
-            <Card className="p-4 bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-950/50 shadow-lg">
               {!image ? (
-                <div className="flex items-center justify-center rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700 bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800/50 dark:to-slate-900/50" style={{ minHeight: '400px' }}>
-                  <div className="text-center px-4">
-                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30 mb-4">
-                      <Upload className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+                <div className="flex min-h-[520px] flex-1 items-center justify-center rounded-lg border border-dashed border-slate-300 bg-slate-50 dark:border-slate-700 dark:bg-slate-950/60 xl:aspect-[16/9]">
+                  <div className="mx-auto max-w-md px-6 text-center">
+                    <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-lg bg-white text-sky-700 shadow-sm dark:bg-slate-900 dark:text-sky-300">
+                      <MousePointer2 className="size-7" />
                     </div>
-                    <p className="text-base font-medium text-slate-700 dark:text-slate-300 mb-1">
-                      上传图像开始使用
-                    </p>
-                    <p className="text-base text-slate-500 dark:text-slate-500">
-                      支持 PNG、JPG 等图像格式
+                    <h3 className="text-lg font-semibold text-slate-950 dark:text-white">上传图像后开始交互标注</h3>
+                    <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-400">
+                      使用鼠标在图像区域拖拽绘制提示框。画布会保留医学图像的原始比例，减少标注坐标偏移。
                     </p>
                   </div>
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {/* Image Canvas */}
-                  <div
-                    ref={canvasRef}
-                    onMouseDown={handleMouseDown}
-                    onMouseMove={handleMouseMove}
-                    onMouseUp={handleMouseUp}
-                    onMouseLeave={handleMouseLeave}
-                    className="relative overflow-hidden rounded-xl border-2 border-slate-200 dark:border-slate-700 shadow-md cursor-crosshair"
-                    style={{
-                      width: '100%',
-                      paddingBottom: imageDimensions
-                        ? `${(imageDimensions.height / imageDimensions.width) * 100}%`
-                        : '75%',
-                    }}
-                  >
-                    {/* Original Image */}
-                    <img
-                      src={image}
-                      alt="上传的图像"
-                      className="absolute inset-0 h-full w-full object-contain select-none"
-                      draggable={false}
-                    />
-
-                    {/* Mask Overlay - Only show CG and PZ */}
-                    {result?.masks && (
-                      <div className="absolute inset-0 pointer-events-none">
-                        {result.masks.CG && (
-                          <img
-                            src={result.masks.CG}
-                            alt="CG Mask"
-                            className="absolute inset-0 h-full w-full object-contain"
-                            style={{ opacity: 0.7 }}
-                          />
-                        )}
-                        {result.masks.PZ && (
-                          <img
-                            src={result.masks.PZ}
-                            alt="PZ Mask"
-                            className="absolute inset-0 h-full w-full object-contain"
-                            style={{ opacity: 0.7 }}
-                          />
-                        )}
-                      </div>
-                    )}
-
-                    {/* Selection Boxes - Hide when segmentation result is available, show when drawing */}
-                    {(!result?.masks || isDrawing) && displayBoxes.length > 0 && imageDimensions && (
-                      <>
-                        {displayBoxes.map((displayBox) => (
-                          <div
-                            key={displayBox.id}
-                            className={`absolute border-2 pointer-events-none ${
-                              displayBox.type === 'WG'
-                                ? 'border-blue-500 bg-blue-500/20'
-                                : 'border-orange-500 bg-orange-500/20'
-                            }`}
-                            style={{
-                              left: `${(displayBox.x / imageDimensions.width) * 100}%`,
-                              top: `${(displayBox.y / imageDimensions.height) * 100}%`,
-                              width: `${(displayBox.width / imageDimensions.width) * 100}%`,
-                              height: `${(displayBox.height / imageDimensions.height) * 100}%`,
-                            }}
-                          >
-                            {/* Box corners */}
-                            {displayBox.type === 'WG' ? (
-                              <>
-                                <div className="absolute -top-1 -left-1 size-3 border-l-2 border-t-2 border-blue-500" />
-                                <div className="absolute -top-1 -right-1 size-3 border-r-2 border-t-2 border-blue-500" />
-                                <div className="absolute -bottom-1 -left-1 size-3 border-l-2 border-b-2 border-blue-500" />
-                                <div className="absolute -bottom-1 -right-1 size-3 border-r-2 border-b-2 border-blue-500" />
-                                {/* Box label */}
-                                <div className="absolute -top-6 left-0 rounded bg-blue-500 px-2 py-0.5 text-base font-bold text-white">
-                                  WG
-                                </div>
-                              </>
-                            ) : (
-                              <>
-                                <div className="absolute -top-1 -left-1 size-3 border-l-2 border-t-2 border-orange-500" />
-                                <div className="absolute -top-1 -right-1 size-3 border-r-2 border-t-2 border-orange-500" />
-                                <div className="absolute -bottom-1 -left-1 size-3 border-l-2 border-b-2 border-orange-500" />
-                                <div className="absolute -bottom-1 -right-1 size-3 border-r-2 border-b-2 border-orange-500" />
-                                {/* Box label */}
-                                <div className="absolute -top-6 left-0 rounded bg-orange-500 px-2 py-0.5 text-base font-bold text-white">
-                                  CG
-                                </div>
-                              </>
-                            )}
-                          </div>
-                        ))}
-                      </>
-                    )}
-                  </div>
-
-                  {/* Controls */}
-                  <div className="flex items-center justify-between">
-                    <p className="text-base text-slate-600 dark:text-slate-400">
-                      {boxes.length > 0
-                        ? `${boxes.length} 个标注框: ${boxes.map(b => b.type).join(', ')}`
-                        : isDrawing
-                        ? '正在绘制标注框...'
-                        : '点击并拖拽图像以绘制标注框'}
-                    </p>
-                    <Button
-                      onClick={handleSegment}
-                      disabled={boxes.length === 0 || isLoading}
-                      className="min-w-[160px]"
+                  <div className="rounded-lg border border-slate-200 bg-slate-950 p-3 shadow-inner dark:border-slate-800">
+                    <div
+                      ref={canvasRef}
+                      onMouseDown={handleMouseDown}
+                      onMouseMove={handleMouseMove}
+                      onMouseUp={handleMouseUp}
+                      onMouseLeave={handleMouseLeave}
+                      className="relative mx-auto overflow-hidden rounded-md border border-white/10 bg-black cursor-crosshair"
+                      style={{
+                        width: '100%',
+                        paddingBottom: imageDimensions
+                          ? `${(imageDimensions.height / imageDimensions.width) * 100}%`
+                          : '75%',
+                      }}
                     >
-                      {isLoading ? '处理中...' : '运行分割'}
-                    </Button>
+                      <img
+                        src={image}
+                        alt="上传的图像"
+                        className="absolute inset-0 h-full w-full select-none object-contain"
+                        draggable={false}
+                      />
+
+                      {result?.masks && (
+                        <div className="pointer-events-none absolute inset-0">
+                          {result.masks.CG && (
+                            <img
+                              src={result.masks.CG}
+                              alt="CG Mask"
+                              className="absolute inset-0 h-full w-full object-contain"
+                              style={{ opacity: 0.7 }}
+                            />
+                          )}
+                          {result.masks.PZ && (
+                            <img
+                              src={result.masks.PZ}
+                              alt="PZ Mask"
+                              className="absolute inset-0 h-full w-full object-contain"
+                              style={{ opacity: 0.7 }}
+                            />
+                          )}
+                        </div>
+                      )}
+
+                      {(!result?.masks || isDrawing) && displayBoxes.length > 0 && imageDimensions && (
+                        <>
+                          {displayBoxes.map((displayBox) => (
+                            <div
+                              key={displayBox.id}
+                              className={`pointer-events-none absolute border-2 ${
+                                displayBox.type === 'WG'
+                                  ? 'border-sky-400 bg-sky-400/20'
+                                  : 'border-orange-400 bg-orange-400/20'
+                              }`}
+                              style={{
+                                left: `${(displayBox.x / imageDimensions.width) * 100}%`,
+                                top: `${(displayBox.y / imageDimensions.height) * 100}%`,
+                                width: `${(displayBox.width / imageDimensions.width) * 100}%`,
+                                height: `${(displayBox.height / imageDimensions.height) * 100}%`,
+                              }}
+                            >
+                              <div
+                                className={`absolute left-0 top-0 -translate-y-full rounded-t px-2 py-0.5 text-xs font-bold text-white ${
+                                  displayBox.type === 'WG' ? 'bg-sky-500' : 'bg-orange-500'
+                                }`}
+                              >
+                                {displayBox.type}
+                              </div>
+                              <div className={`absolute -left-1 -top-1 size-3 border-l-2 border-t-2 ${displayBox.type === 'WG' ? 'border-sky-300' : 'border-orange-300'}`} />
+                              <div className={`absolute -right-1 -top-1 size-3 border-r-2 border-t-2 ${displayBox.type === 'WG' ? 'border-sky-300' : 'border-orange-300'}`} />
+                              <div className={`absolute -bottom-1 -left-1 size-3 border-b-2 border-l-2 ${displayBox.type === 'WG' ? 'border-sky-300' : 'border-orange-300'}`} />
+                              <div className={`absolute -bottom-1 -right-1 size-3 border-b-2 border-r-2 ${displayBox.type === 'WG' ? 'border-sky-300' : 'border-orange-300'}`} />
+                            </div>
+                          ))}
+                        </>
+                      )}
+                    </div>
                   </div>
 
-                  {/* Error Message */}
                   {result?.error && (
-                    <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-base text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-200">
+                    <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/50 dark:text-red-200">
                       <strong>错误：</strong> {result.error}
-                    </div>
-                  )}
-
-                  {/* Success Message */}
-                  {result?.success && result.masks && (
-                    <div className="rounded-lg border border-green-200 bg-green-50 p-4 text-base text-green-800 dark:border-green-800 dark:bg-green-950 dark:text-green-200">
-                      <strong>成功！</strong> 分割完成。
-                      <div className="mt-2">
-                        {result.masks.CG && (
-                          <div className="flex items-center space-x-2">
-                            <span className="inline-block h-3 w-3 rounded bg-green-500"></span>
-                            <span>CG (中央腺体) - 绿色</span>
-                          </div>
-                        )}
-                        {result.masks.PZ && (
-                          <div className="flex items-center space-x-2">
-                            <span className="inline-block h-3 w-3 rounded bg-blue-500"></span>
-                            <span>PZ (外周区) - 蓝色</span>
-                          </div>
-                        )}
-                      </div>
                     </div>
                   )}
                 </div>
               )}
             </Card>
-          </div>
-        </div>
+          </section>
+
+          <aside className="space-y-4 lg:col-span-2 xl:col-span-1">
+            <Card className="gap-4 border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+              <div className="flex items-center justify-between">
+                <h2 className="text-base font-semibold text-slate-950 dark:text-white">结果状态</h2>
+                {result?.success ? (
+                  <CheckCircle2 className="size-4 text-emerald-600" />
+                ) : (
+                  <Activity className="size-4 text-slate-400" />
+                )}
+              </div>
+              {result?.success && result.masks ? (
+                <div className="space-y-3">
+                  <p className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/50 dark:text-emerald-200">
+                    分割完成，结果已叠加显示在中央画布。
+                  </p>
+                  <div className="space-y-2 text-sm text-slate-600 dark:text-slate-400">
+                    {result.masks.CG && (
+                      <div className="flex items-center gap-2">
+                        <span className="size-2.5 rounded-full bg-emerald-500" />
+                        <span>CG 中央腺体</span>
+                      </div>
+                    )}
+                    {result.masks.PZ && (
+                      <div className="flex items-center gap-2">
+                        <span className="size-2.5 rounded-full bg-sky-500" />
+                        <span>PZ 外周带</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm leading-6 text-slate-600 dark:text-slate-400">
+                  运行分割后，这里会显示成功状态和颜色图例。当前结果默认叠加 CG 与 PZ，便于快速判断分区边界。
+                </p>
+              )}
+            </Card>
+
+            <Card className="gap-4 border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+              <div className="flex items-center justify-between">
+                <h2 className="text-base font-semibold text-slate-950 dark:text-white">标注框</h2>
+                {boxes.length > 0 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={clearAllBoxes}
+                    className="h-8 text-red-600 hover:text-red-700"
+                  >
+                    清除全部
+                  </Button>
+                )}
+              </div>
+
+              {boxes.length > 0 ? (
+                <div className="max-h-[420px] space-y-2 overflow-y-auto pr-1">
+                  {boxes.filter((box) => box != null).map((box, index) => (
+                    <div
+                      key={box.id}
+                      className="flex items-center justify-between gap-3 rounded-lg border p-3 text-sm"
+                      style={{
+                        borderColor: box.type === 'WG' ? 'rgba(14, 165, 233, 0.35)' : 'rgba(249, 115, 22, 0.35)',
+                        backgroundColor: box.type === 'WG' ? 'rgba(14, 165, 233, 0.06)' : 'rgba(249, 115, 22, 0.06)',
+                      }}
+                    >
+                      <div className="min-w-0">
+                        <div className={`font-semibold ${box.type === 'WG' ? 'text-sky-700 dark:text-sky-300' : 'text-orange-600 dark:text-orange-300'}`}>
+                          {index + 1}. {box.type}
+                        </div>
+                        <div className="truncate text-xs text-slate-500 dark:text-slate-400">
+                          {box.width} x {box.height} at ({box.x}, {box.y})
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        onClick={() => deleteBox(box.id)}
+                        className="text-red-600 hover:text-red-700"
+                        aria-label={`删除 ${box.type} 标注框`}
+                      >
+                        <Trash2 className="size-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-lg border border-dashed border-slate-300 p-4 text-sm leading-6 text-slate-500 dark:border-slate-700 dark:text-slate-400">
+                  暂无标注框。选择 WG 或 CG 后，在图像上拖拽即可添加。
+                </div>
+              )}
+            </Card>
+
+            <Card className="gap-3 border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+              <h2 className="text-base font-semibold text-slate-950 dark:text-white">操作流程</h2>
+              <ol className="space-y-3 text-sm text-slate-600 dark:text-slate-400">
+                <li className="flex gap-3">
+                  <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-slate-900 text-xs font-semibold text-white dark:bg-white dark:text-slate-950">1</span>
+                  上传图像或载入示例图像。
+                </li>
+                <li className="flex gap-3">
+                  <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-slate-900 text-xs font-semibold text-white dark:bg-white dark:text-slate-950">2</span>
+                  选择 WG/CG，在画布上拖拽生成提示框。
+                </li>
+                <li className="flex gap-3">
+                  <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-slate-900 text-xs font-semibold text-white dark:bg-white dark:text-slate-950">3</span>
+                  点击运行分割，查看 CG 与 PZ 叠加结果。
+                </li>
+              </ol>
+            </Card>
+          </aside>
+        </section>
       </div>
-    </div>
+    </main>
   );
 }
