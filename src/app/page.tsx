@@ -352,7 +352,7 @@ export default function MedicalSAMDemo() {
                     </span>
                   </Button>
                 </label>
-                <Button variant="outline" onClick={loadSampleImage} className="h-10 w-full">
+                <Button variant="outline" onClick={() => loadSampleImage()} className="h-10 w-full">
                   <ImagePlus className="size-4" />
                   载入示例图像
                 </Button>
