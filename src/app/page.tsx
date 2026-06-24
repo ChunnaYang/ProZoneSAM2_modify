@@ -35,6 +35,12 @@ interface SegmentationResult {
   error?: string;
 }
 
+const SAMPLE_IMAGE_PATHS = [
+  '/assets/test_image.png',
+  '/assets/samples/sample1.png',
+  '/assets/image.png',
+];
+
 export default function MedicalSAMDemo() {
   const [image, setImage] = useState<string | null>(null);
   const [boxes, setBoxes] = useState<Box[]>([]); // Multiple boxes support
@@ -57,21 +63,29 @@ export default function MedicalSAMDemo() {
   const generateBoxId = () => `box-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
   // Load sample image for quick testing
-  const loadSampleImage = () => {
+  const loadSampleImage = (pathIndex = 0) => {
+    const samplePath = SAMPLE_IMAGE_PATHS[pathIndex];
+
+    if (!samplePath) {
+      console.error('Failed to load sample image from all known paths');
+      alert('示例图像加载失败，请确认 public/assets/test_image.png 已存在');
+      return;
+    }
+
     const sampleImage = new Image();
     sampleImage.onload = () => {
       setImageDimensions({ width: sampleImage.width, height: sampleImage.height });
-      setImage('/assets/test_image.png');
+      setImage(samplePath);
       setBoxes([]); // Clear all boxes
       setResult(null);
       setStartPoint(null);
       setCurrentBox(null);
     };
     sampleImage.onerror = () => {
-      console.error('Failed to load sample image');
-      alert('Failed to load sample image');
+      console.warn(`Failed to load sample image: ${samplePath}`);
+      loadSampleImage(pathIndex + 1);
     };
-    sampleImage.src = '/assets/test_image.png';
+    sampleImage.src = samplePath;
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -279,7 +293,7 @@ export default function MedicalSAMDemo() {
           <img
             src="/深圳河套学院.png"
             alt="深圳河套学院"
-            className="h-10 w-auto max-w-[280px] object-contain opacity-90 md:h-12"
+            className="h-16 w-auto max-w-[360px] object-contain opacity-95 md:h-20 lg:h-24"
           />
         </header>
 
@@ -295,7 +309,7 @@ export default function MedicalSAMDemo() {
                   面向前列腺分区的交互式分割工作台
                 </h2>
                 <p className="text-sm leading-6 text-slate-600 dark:text-slate-400">
-                  上传医学图像后，通过框选全腺体 WG 和中央腺体 CG，引导模型生成中央腺体与外周带 PZ 的分割结果。页面已按宽屏工作流重新排布，左侧控制、中央阅片、右侧查看状态。
+                  ProZoneSAM2 基于 SAM2 构建，并使用边界框提示进行交互式前列腺区域分割。用户上传医学图像后，通过框选全腺体 WG 和中央腺体 CG，引导模型生成中央腺体与外周带 PZ 的分割结果。
                 </p>
               </div>
               <div className="grid grid-cols-3 gap-2 text-center">
@@ -399,7 +413,7 @@ export default function MedicalSAMDemo() {
                 </label>
               </div>
               <p className="rounded-lg bg-slate-50 p-3 text-xs leading-5 text-slate-600 dark:bg-slate-950/60 dark:text-slate-400">
-                推荐先绘制 WG，再切换到 CG 绘制第二个框。两类标注同时存在时，模型可推导 PZ 外周带区域。
+                先绘制 WG，再切换到 CG 绘制第二个框。两类标注同时存在时，模型可推导 PZ 外周带区域。
               </p>
             </Card>
 
@@ -478,7 +492,7 @@ export default function MedicalSAMDemo() {
                     </div>
                     <h3 className="text-lg font-semibold text-slate-950 dark:text-white">上传图像后开始交互标注</h3>
                     <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-400">
-                      使用鼠标在图像区域拖拽绘制提示框。画布会保留医学图像的原始比例，减少标注坐标偏移。
+                      使用鼠标在图像区域拖拽绘制提示框。
                     </p>
                   </div>
                 </div>
@@ -675,7 +689,7 @@ export default function MedicalSAMDemo() {
                 </li>
                 <li className="flex gap-3">
                   <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-slate-900 text-xs font-semibold text-white dark:bg-white dark:text-slate-950">3</span>
-                  点击运行分割，查看 CG 与 PZ 叠加结果。
+                  点击运行分割，查看 CG 与 PZ 分割结果。
                 </li>
               </ol>
             </Card>
