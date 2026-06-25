@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, MouseEvent } from 'react';
+import { useState, useRef, MouseEvent, TouchEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import {
@@ -191,6 +191,89 @@ export default function MedicalSAMDemo() {
     }
 
     // Reset both state and ref
+    setIsDrawing(false);
+    isDrawingRef.current = false;
+    setStartPoint(null);
+    setCurrentBox(null);
+    currentBoxRef.current = null;
+  };
+
+  const handleTouchStart = (e: TouchEvent<HTMLDivElement>) => {
+    if (!image || !imageDimensions) return;
+    e.preventDefault(); // Prevent scroll / zoom
+
+    const touch = e.touches[0];
+    const rect = e.currentTarget.getBoundingClientRect();
+    const scaleX = imageDimensions.width / rect.width;
+    const scaleY = imageDimensions.height / rect.height;
+
+    const x = Math.round((touch.clientX - rect.left) * scaleX);
+    const y = Math.round((touch.clientY - rect.top) * scaleY);
+
+    const newBox = { id: generateBoxId(), x, y, width: 0, height: 0, type: selectedBoxType };
+    console.log('[TouchStart] Start drawing at:', { x, y, type: selectedBoxType });
+
+    setStartPoint({ x, y });
+    setIsDrawing(true);
+    setCurrentBox(newBox);
+
+    isDrawingRef.current = true;
+    currentBoxRef.current = newBox;
+  };
+
+  const handleTouchMove = (e: TouchEvent<HTMLDivElement>) => {
+    if (!isDrawingRef.current || !startPoint || !imageDimensions) return;
+    e.preventDefault(); // Prevent scroll while drawing
+
+    const touch = e.touches[0];
+    const rect = e.currentTarget.getBoundingClientRect();
+    const scaleX = imageDimensions.width / rect.width;
+    const scaleY = imageDimensions.height / rect.height;
+
+    const currentX = Math.round((touch.clientX - rect.left) * scaleX);
+    const currentY = Math.round((touch.clientY - rect.top) * scaleY);
+
+    const width = currentX - startPoint.x;
+    const height = currentY - startPoint.y;
+
+    const updatedBox = {
+      x: width < 0 ? currentX : startPoint.x,
+      y: height < 0 ? currentY : startPoint.y,
+      width: Math.abs(width),
+      height: Math.abs(height),
+    };
+
+    setCurrentBox((prevBox) => {
+      if (prevBox) {
+        const newBox = { ...prevBox, ...updatedBox };
+        currentBoxRef.current = newBox;
+        return newBox;
+      }
+      return null;
+    });
+  };
+
+  const handleTouchEnd = (e: TouchEvent<HTMLDivElement>) => {
+    console.log('[TouchEnd] isDrawingRef:', isDrawingRef.current, 'currentBoxRef:', currentBoxRef.current);
+    e.preventDefault();
+
+    if (isDrawingRef.current && currentBoxRef.current && currentBoxRef.current.width > 0 && currentBoxRef.current.height > 0) {
+      console.log('[TouchEnd] Adding box:', currentBoxRef.current);
+      const boxToAdd = { ...currentBoxRef.current };
+      setBoxes(prev => [...prev, boxToAdd]);
+    }
+
+    setIsDrawing(false);
+    isDrawingRef.current = false;
+    setStartPoint(null);
+    setCurrentBox(null);
+    currentBoxRef.current = null;
+  };
+
+  const handleTouchCancel = (e: TouchEvent<HTMLDivElement>) => {
+    console.log('[TouchCancel] isDrawingRef:', isDrawingRef.current, 'currentBoxRef:', currentBoxRef.current);
+    e.preventDefault();
+
     setIsDrawing(false);
     isDrawingRef.current = false;
     setStartPoint(null);
@@ -492,7 +575,7 @@ export default function MedicalSAMDemo() {
                     </div>
                     <h3 className="text-lg font-semibold text-slate-950 dark:text-white">上传图像后开始交互标注</h3>
                     <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-400">
-                      使用鼠标在图像区域拖拽绘制提示框。
+                      使用鼠标或触摸在图像区域拖拽绘制提示框。
                     </p>
                   </div>
                 </div>
@@ -505,9 +588,14 @@ export default function MedicalSAMDemo() {
                       onMouseMove={handleMouseMove}
                       onMouseUp={handleMouseUp}
                       onMouseLeave={handleMouseLeave}
+                      onTouchStart={handleTouchStart}
+                      onTouchMove={handleTouchMove}
+                      onTouchEnd={handleTouchEnd}
+                      onTouchCancel={handleTouchCancel}
                       className="relative mx-auto overflow-hidden rounded-md border border-white/10 bg-black cursor-crosshair"
                       style={{
                         width: '100%',
+                        touchAction: 'none',
                         paddingBottom: imageDimensions
                           ? `${(imageDimensions.height / imageDimensions.width) * 100}%`
                           : '75%',
